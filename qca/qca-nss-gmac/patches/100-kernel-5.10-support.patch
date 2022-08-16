@@ -1,6 +1,6 @@
 --- a/ipq806x/nss_gmac_dev.c
 +++ b/ipq806x/nss_gmac_dev.c
-@@ -1585,7 +1585,7 @@ int32_t nss_gmac_attach(struct nss_gmac_dev *gmacdev,
+@@ -1585,7 +1585,7 @@ int32_t nss_gmac_attach(struct nss_gmac_
  	}
  
  	/* ioremap addresses */
@@ -72,15 +72,18 @@
  {
  	*supp |= NSS_GMAC_SUPPORTED_FEATURES;
  	*adv |= NSS_GMAC_ADVERTISED_FEATURES;
-@@ -960,6 +960,7 @@ static int32_t nss_gmac_of_get_pdata(struct device_node *np,
- 	uint8_t *maddr = NULL;
+@@ -994,9 +992,9 @@ static int32_t nss_gmac_of_get_pdata(str
+ 				     struct net_device *netdev,
+ 				     struct msm_nss_gmac_platform_data *gmaccfg)
+ {
+-	uint8_t *maddr = NULL;
  	struct nss_gmac_dev *gmacdev = (struct nss_gmac_dev *)netdev_priv(netdev);
  	struct resource memres_devtree = {0};
 +	int ret;
  
  	if (of_property_read_u32(np, "qcom,id", &gmacdev->macid)
  		|| of_property_read_u32(np, "qcom,phy-mdio-addr",
-@@ -985,7 +986,10 @@ static int32_t nss_gmac_of_get_pdata(struct device_node *np,
+@@ -1022,15 +1020,17 @@ static int32_t nss_gmac_of_get_pdata(str
  
  	of_property_read_u32(np, "qcom,aux-clk-freq", &gmacdev->aux_clk_freq);
  
@@ -92,7 +95,17 @@
  	netdev->irq = irq_of_parse_and_map(np, 0);
  	if (netdev->irq == NO_IRQ) {
  		pr_err("%s: Can't map interrupt\n", np->name);
-@@ -1063,7 +1063,7 @@ static int32_t nss_gmac_do_common_init(struct platform_device *pdev)
+ 		return -EFAULT;
+ 	}
+-	maddr = (uint8_t *)of_get_mac_address(np);
+-	if (maddr)
+-		memcpy(gmaccfg->mac_addr, maddr, ETH_ALEN);
++
++	of_get_mac_address(np, gmaccfg->mac_addr);
+ 
+ 	if (of_address_to_resource(np, 0, &memres_devtree) != 0)
+ 		return -EFAULT;
+@@ -1100,7 +1100,7 @@ static int32_t nss_gmac_do_common_init(s
  	ctx.msm_clk_ctl_enabled = true;
  #endif
  
@@ -101,7 +114,7 @@
  						  resource_size(&res_nss_base));
  	if (!ctx.nss_base) {
  		pr_info("Error mapping NSS GMAC registers\n");
-@@ -1072,7 +1072,7 @@ static int32_t nss_gmac_do_common_init(struct platform_device *pdev)
+@@ -1109,7 +1109,7 @@ static int32_t nss_gmac_do_common_init(s
  	}
  	pr_debug("%s: NSS base ioremap OK.\n", __func__);
  
@@ -110,7 +123,7 @@
  					      resource_size(&res_qsgmii_base));
  	if (!ctx.qsgmii_base) {
  		pr_info("Error mapping QSGMII registers\n");
-@@ -1082,7 +1082,7 @@ static int32_t nss_gmac_do_common_init(struct platform_device *pdev)
+@@ -1119,7 +1119,7 @@ static int32_t nss_gmac_do_common_init(s
  	pr_debug("%s: QSGMII base ioremap OK, vaddr = 0x%p\n",
  						__func__, ctx.qsgmii_base);
  
@@ -119,7 +132,7 @@
  				       resource_size(&res_clk_ctl_base));
  	if (!ctx.clk_ctl_base) {
  		pr_info("Error mapping Clk control registers\n");
-@@ -1409,8 +1407,8 @@ static int32_t nss_gmac_probe(struct pla
+@@ -1409,8 +1409,8 @@ static int32_t nss_gmac_probe(struct pla
  			goto nss_gmac_phy_attach_fail;
  		}
  
@@ -130,7 +143,7 @@
  		gmacdev->phydev->irq = PHY_POLL;
  		netdev_dbg(netdev, "PHY %s attach OK\n", phy_id);
  
-@@ -1440,6 +1438,8 @@ static int32_t nss_gmac_probe(struct pla
+@@ -1440,6 +1440,8 @@ static int32_t nss_gmac_probe(struct pla
  		netdev_dbg(netdev, "%s MII_PHYSID2 - 0x%04x\n", netdev->name,
  		      nss_gmac_mii_rd_reg(gmacdev, gmacdev->phy_base, MII_PHYSID2));
  	} else if (gmacdev->phy_base != NSS_GMAC_NO_MDIO_PHY) {
@@ -156,7 +169,7 @@
  };
  
  #define NSS_GMAC_STATS_LEN	ARRAY_SIZE(gmac_gstrings_stats)
-@@ -292,6 +292,7 @@ static int nss_gmac_set_pauseparam(struc
+@@ -290,6 +290,7 @@ static int nss_gmac_set_pauseparam(struc
  {
  	struct nss_gmac_dev *gmacdev = (struct nss_gmac_dev *)netdev_priv(netdev);
  	struct phy_device *phydev;
@@ -164,7 +177,7 @@
  
  	BUG_ON(gmacdev == NULL);
  	BUG_ON(gmacdev->netdev != netdev);
-@@ -327,14 +328,15 @@ static int nss_gmac_set_pauseparam(struc
+@@ -325,14 +326,15 @@ static int nss_gmac_set_pauseparam(struc
  	phydev = gmacdev->phydev;
  
  	/* Update flow control advertisment */
@@ -183,7 +196,7 @@
  
  	genphy_config_aneg(gmacdev->phydev);
  
-@@ -396,12 +398,13 @@ static uint32_t nss_gmac_get_msglevel(st
+@@ -392,12 +394,13 @@ static uint32_t nss_gmac_get_msglevel(st
   * @param[in] pointer to struct net_device.
   * @param[in] pointer to struct ethtool_cmd.
   */
@@ -199,7 +212,7 @@
  
  	BUG_ON(gmacdev == NULL);
  
-@@ -413,10 +416,10 @@ static int32_t nss_gmac_get_settings(str
+@@ -409,10 +412,10 @@ static int32_t nss_gmac_get_settings(str
  	 */
  	if (!test_bit(__NSS_GMAC_LINKPOLL, &gmacdev->flags)) {
  		if (gmacdev->forced_speed != SPEED_UNKNOWN) {
@@ -214,7 +227,7 @@
  			return 0;
  		} else {
  			/* Non-link polled interfaced must have a forced
-@@ -432,56 +432,59 @@ static int32_t nss_gmac_get_settings(struct net_device *netdev,
+@@ -426,56 +429,59 @@ static int32_t nss_gmac_get_settings(str
  
  	/* update PHY status */
  	if (phydev->is_c45 == true) {
@@ -292,7 +305,7 @@
  
  	return 0;
  }
-@@ -489,8 +495,8 @@ static int32_t nss_gmac_get_settings(str
+@@ -485,8 +491,8 @@ static int32_t nss_gmac_get_settings(str
   * @param[in] pointer to struct net_device.
   * @param[in] pointer to struct ethtool_cmd.
   */
@@ -303,7 +316,7 @@
  {
  	struct nss_gmac_dev *gmacdev = (struct nss_gmac_dev *)netdev_priv(netdev);
  	struct phy_device *phydev = NULL;
-@@ -512,13 +518,13 @@ static int32_t nss_gmac_set_settings(str
+@@ -508,13 +514,13 @@ static int32_t nss_gmac_set_settings(str
  		return -EPERM;
  	}
  
@@ -319,7 +332,7 @@
  }
  
  /**
-@@ -580,8 +586,8 @@ struct ethtool_ops nss_gmac_ethtool_ops
+@@ -592,8 +598,8 @@ struct ethtool_ops nss_gmac_ethtool_ops
  	.set_pauseparam = &nss_gmac_set_pauseparam,
  	.nway_reset = &nss_gmac_nway_reset,
  	.get_wol = &nss_gmac_get_wol,
@@ -332,7 +345,7 @@
  	.get_ethtool_stats = &nss_gmac_get_ethtool_stats,
 --- a/ipq806x/nss_gmac_tx_rx_offload.c
 +++ b/ipq806x/nss_gmac_tx_rx_offload.c
-@@ -1046,7 +1046,7 @@ int nss_gmac_close(struct net_device *netdev)
+@@ -1044,7 +1044,7 @@ int nss_gmac_close(struct net_device *ne
   * @param[in] pointer to net_device structure
   * @return void.
   */
@@ -343,7 +356,7 @@
  	BUG_ON(gmacdev == NULL);
 --- a/ipq806x/include/nss_gmac_network_interface.h
 +++ b/ipq806x/include/nss_gmac_network_interface.h
-@@ -41,7 +41,7 @@ int32_t nss_gmac_xmit_frames(struct sk_buff *skb,
+@@ -41,7 +41,7 @@ int32_t nss_gmac_xmit_frames(struct sk_b
  int32_t nss_gmac_close(struct net_device *netdev);
  int32_t nss_gmac_open(struct net_device *netdev);
  int32_t nss_gmac_change_mtu(struct net_device *netdev, int32_t newmtu);
