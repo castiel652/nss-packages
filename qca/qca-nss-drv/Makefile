@@ -5,9 +5,9 @@ PKG_RELEASE:=$(AUTORELEASE)
 
 PKG_SOURCE_URL:=https://source.codeaurora.org/quic/qsdk/oss/lklm/nss-drv
 PKG_SOURCE_PROTO:=git
-PKG_SOURCE_DATE:=2021-04-26
-PKG_SOURCE_VERSION:=1cf4bf81fd395f61648efeae78cdf1df60e954ff
-PKG_MIRROR_HASH:=86b7455565d28a72da981099c67a89ea9e0ae3874a34be30959dcf48f5e2196c
+PKG_SOURCE_DATE:=2021-03-06
+PKG_SOURCE_VERSION:=60eddb614e4f3df736d57648babfbfbe2a2b7b3d
+PKG_MIRROR_HASH:=7dcd0408bb1b5288d4e35ace3176e0424442a4185f9154b57e47786a5d59687c
 
 PKG_BUILD_PARALLEL:=1
 
@@ -105,16 +105,8 @@ else
     SOC=$(CONFIG_TARGET_BOARD)
 endif
 
-ifeq ($(CONFIG_TARGET_BOARD), "ipq806x")
-	TARGET_NSS_MINOR_VERSION=0
-else
-	TARGET_NSS_MINOR_VERSION=3
-endif
-
 define Build/Configure
 	$(LN) arch/nss_$(SOC).h $(PKG_BUILD_DIR)/exports/nss_arch.h
-	sed -i "s/define NSS_FW_VERSION_MAJOR.*/define NSS_FW_VERSION_MAJOR 11/" $(PKG_BUILD_DIR)/exports/nss_fw_version.h
-	sed -i "s/define NSS_FW_VERSION_MINOR.*/define NSS_FW_VERSION_MINOR $(TARGET_NSS_MINOR_VERSION)/" $(PKG_BUILD_DIR)/exports/nss_fw_version.h
 endef
 
 define Build/Compile
