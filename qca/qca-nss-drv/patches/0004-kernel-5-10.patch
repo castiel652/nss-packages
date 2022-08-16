@@ -1,0 +1,68 @@
+--- a/nss_core.c
++++ b/nss_core.c
+@@ -26,6 +26,7 @@
+ #include <nss_hal.h>
+ #include <net/dst.h>
+ #include <linux/etherdevice.h>
++#include <linux/kmemleak.h>
+ #include "nss_tx_rx_common.h"
+ #include "nss_data_plane.h"
+ 
+@@ -449,7 +450,7 @@ static void nss_get_ddr_info(struct nss_
+ 	struct device_node *node;
+ 
+ 	si_meminfo(&vals);
+-	cached = global_page_state(NR_FILE_PAGES);
++	cached = global_node_page_state(NR_FILE_PAGES);
+ 	avail_ddr = (vals.totalram + cached + vals.sharedram) * vals.mem_unit;
+ 	mmu->num_active_cores = nss_top_main.num_nss;
+ 
+@@ -746,7 +747,7 @@ static inline void nss_core_handle_virt_
+ 	 * Mimic Linux behavior to allow multi-queue netdev choose which queue to use
+ 	 */
+ 	if (ndev->netdev_ops->ndo_select_queue) {
+-		queue_offset = ndev->netdev_ops->ndo_select_queue(ndev, nbuf, NULL, NULL);
++		queue_offset = ndev->netdev_ops->ndo_select_queue(ndev, nbuf, NULL);
+ 	}
+ 
+ 	skb_set_queue_mapping(nbuf, queue_offset);
+@@ -2421,7 +2422,7 @@ static inline bool nss_skb_can_reuse(str
+ 	 * This check is added to avoid deadlock from nf_conntrack
+ 	 * when ecm is trying to flush a rule.
+ 	 */
+-	if (unlikely(nbuf->nfct)) {
++	if (unlikely(skb_nfct(nbuf))) {
+ 		return false;
+ 	}
+ #endif
+--- a/nss_data_plane/nss_data_plane_gmac.c
++++ b/nss_data_plane/nss_data_plane_gmac.c
+@@ -20,7 +20,7 @@
+ #include "nss_tx_rx_common.h"
+ #include <nss_gmac_api_if.h>
+ 
+-#define NSS_DP_GMAC_SUPPORTED_FEATURES (NETIF_F_HIGHDMA | NETIF_F_HW_CSUM | NETIF_F_RXCSUM | NETIF_F_SG | NETIF_F_FRAGLIST | (NETIF_F_TSO | NETIF_F_TSO6 | NETIF_F_UFO))
++#define NSS_DP_GMAC_SUPPORTED_FEATURES (NETIF_F_HIGHDMA | NETIF_F_HW_CSUM | NETIF_F_RXCSUM | NETIF_F_SG | NETIF_F_FRAGLIST | (NETIF_F_TSO | NETIF_F_TSO6))
+ #define NSS_DATA_PLANE_GMAC_MAX_INTERFACES 4
+ 
+ static DEFINE_SPINLOCK(nss_data_plane_gmac_stats_lock);
+--- a/nss_meminfo.c
++++ b/nss_meminfo.c
+@@ -19,6 +19,7 @@
+  *	NSS meminfo subsystem
+  */
+ 
++#include <linux/kmemleak.h>
+ #include <linux/seq_file_net.h>
+ #include "nss_tx_rx_common.h"
+ #include "nss_core.h"
+--- a/nss_n2h.c
++++ b/nss_n2h.c
+@@ -19,6 +19,7 @@
+  *	NSS N2H node APIs
+  */
+ 
++#include <linux/kmemleak.h>
+ #include "nss_tx_rx_common.h"
+ #include "nss_n2h_stats.h"
+ 
